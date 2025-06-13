@@ -1,0 +1,72 @@
+FROM node:lts-slim
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    xvfb \
+    x11vnc \
+    openbox \
+    supervisor \
+    python3 \
+    python3-pip \
+    novnc \
+    websockify \
+    procps \
+    xdg-utils \
+    python3-xdg \
+    x11-xserver-utils \
+    curl \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install noVNC
+RUN git clone --depth 1 --branch v1.6.0 https://github.com/novnc/noVNC.git /usr/local/novnc \
+    && git clone --depth 1 --branch v0.13.0 https://github.com/novnc/websockify /usr/local/novnc/utils/websockify
+
+# Set up working directory
+WORKDIR /app
+
+# Copy package files
+COPY docker/package.json ./
+RUN npm install
+
+# Install Playwright
+RUN npx playwright@1.51 install --with-deps chromium
+
+# Set up supervisord configuration
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Copy scripts from the docker directory
+COPY docker/start.sh /app/start.sh
+COPY docker/playwright-server.js /app/playwright-server.js
+COPY docker/x11-setup.sh /app/x11-setup.sh
+
+# Make scripts executable
+RUN chmod +x /app/start.sh /app/x11-setup.sh
+
+# Create a simple openbox configuration
+RUN mkdir -p /root/.config/openbox
+COPY docker/openbox-rc.xml /root/.config/openbox/rc.xml
+
+# Expose ports: noVNC web interface, and Playwright server
+EXPOSE 6080 37367
+
+# Set environment variables
+ENV PLAYWRIGHT_WS_PATH="default"
+ENV NO_VNC_PORT=6080
+ENV PLAYWRIGHT_PORT=37367
+ENV DISPLAY=:99
+
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+COPY docker/entrypoint-browser.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Start services
+CMD ["/app/start.sh"]

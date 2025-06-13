@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  magentic-ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "${PORT:-8081}:8081"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - DATABASE_URL=${DATABASE_URL:-}
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=8081
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker if needed
+    env_file:
+      - .env
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - magentic-network
+
+  # VNC Browser service (optional, for web browsing capabilities)
+  vnc-browser:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.browser
+    ports:
+      - "6080:6080"  # noVNC web interface
+      - "5900:5900"  # VNC port
+      - "37367:37367"  # Playwright server port
+    environment:
+      - DISPLAY=:99
+      - VNC_PASSWORD=${VNC_PASSWORD:-magentic}
+      - NO_VNC_PORT=6080
+      - PLAYWRIGHT_PORT=37367
+      - PLAYWRIGHT_WS_PATH=${PLAYWRIGHT_WS_PATH:-default}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    restart: unless-stopped
+    networks:
+      - magentic-network
+
+networks:
+  magentic-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
