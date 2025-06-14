@@ -57,7 +57,7 @@ async def login(
             key="session_id",
             value=session_id,
             max_age=600,
-            secure=True if request.url.scheme == "https" else False,
+            secure=True,
             httponly=True,
             samesite="lax",
         )
@@ -183,7 +183,7 @@ async def refresh_token(request: Request, _: Any = Depends(auth_rate_limit)):
             key="access_token",
             value=new_token.access_token,
             max_age=new_token.expires_in,
-            secure=True if request.url.scheme == "https" else False,
+            secure=True,
             httponly=True,
             samesite="lax",
         )
@@ -193,7 +193,7 @@ async def refresh_token(request: Request, _: Any = Depends(auth_rate_limit)):
                 key="refresh_token",
                 value=new_token.refresh_token,
                 max_age=7 * 24 * 3600,  # 7 days
-                secure=True if request.url.scheme == "https" else False,
+                secure=True,
                 httponly=True,
                 samesite="lax",
             )
