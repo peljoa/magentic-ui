@@ -290,4 +290,4 @@ async def auth_health():
         }
     except Exception as e:
         logger.error(f"Authentication health check failed: {str(e)}")
-        return {"status": "unhealthy", "service": "authentication", "error": str(e)}
+        return {"status": "unhealthy", "service": "authentication", "error": "An internal error occurred."}
