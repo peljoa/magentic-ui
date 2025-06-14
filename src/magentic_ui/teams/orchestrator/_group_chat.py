@@ -128,21 +128,29 @@ class GroupChat(BaseGroupChat, Component[GroupChatConfig]):
             )  # type: ignore
 
     async def pause(self) -> None:  # TODO: can this be implemented using events?
-        orchestrator = await self._runtime.try_get_underlying_agent_instance(
-            AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
-            type=Orchestrator,
-        )
-        await orchestrator.pause()
+        try:
+            orchestrator = await self._runtime.try_get_underlying_agent_instance(
+                AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                type=Orchestrator,
+            )
+            await orchestrator.pause()
+        except LookupError:
+            # Orchestrator agent not found in runtime, likely already cleaned up
+            pass
         for agent in self._participants:
             if hasattr(agent, "pause"):
                 await agent.pause()  # type: ignore
 
     async def resume(self) -> None:
-        orchestrator = await self._runtime.try_get_underlying_agent_instance(
-            AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
-            type=Orchestrator,
-        )
-        await orchestrator.resume()
+        try:
+            orchestrator = await self._runtime.try_get_underlying_agent_instance(
+                AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                type=Orchestrator,
+            )
+            await orchestrator.resume()
+        except LookupError:
+            # Orchestrator agent not found in runtime, likely already cleaned up
+            pass
         for agent in self._participants:
             if hasattr(agent, "resume"):
                 await agent.resume()  # type: ignore
@@ -216,12 +224,16 @@ class GroupChat(BaseGroupChat, Component[GroupChatConfig]):
             agent for agent in self._participants if hasattr(agent, "close")
         ]
         # can we close the orchestrator?
-        orchestrator = await self._runtime.try_get_underlying_agent_instance(
-            AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
-            type=Orchestrator,
-        )
-        if hasattr(orchestrator, "close"):
-            closable_agents.append(orchestrator)
+        try:
+            orchestrator = await self._runtime.try_get_underlying_agent_instance(
+                AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                type=Orchestrator,
+            )
+            if hasattr(orchestrator, "close"):
+                closable_agents.append(orchestrator)
+        except LookupError:
+            # Orchestrator agent not found in runtime, likely already cleaned up
+            pass
 
         # Close all closable agents concurrently
         await asyncio.gather(
