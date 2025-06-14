@@ -51,6 +51,21 @@ jobs:
         # Verify installation
         azd version
 
+    - name: Install Terraform CLI
+      run: |
+        echo "Installing Terraform CLI..."
+        
+        # Download and install Terraform
+        TERRAFORM_VERSION="1.9.8"
+        wget -O terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+        unzip terraform.zip
+        sudo mv terraform /usr/local/bin/
+        rm terraform.zip
+        
+        # Verify installation
+        terraform version
+        echo "Terraform CLI installed successfully"
+
     - name: Initialize azd environment
       run: |
         echo "Setting up azd environment..."
