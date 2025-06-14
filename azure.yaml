@@ -61,6 +61,26 @@ hooks:
           rm -f terraform/terraform.tfvars.bak
           
           echo "✅ Generated terraform.tfvars with environment variables"
+          
+          # Also generate main.tfvars.json for azd compatibility
+          echo "📝 Generating main.tfvars.json for azd..."
+          echo "{" > terraform/main.tfvars.json
+          echo "  \"environmentName\": \"${AZURE_ENV_NAME}\"," >> terraform/main.tfvars.json
+          echo "  \"location\": \"${AZURE_LOCATION}\"," >> terraform/main.tfvars.json
+          echo "  \"openai_api_key\": \"${OPENAI_API_KEY}\"," >> terraform/main.tfvars.json
+          echo "  \"azure_openai_endpoint\": \"${AZURE_OPENAI_ENDPOINT:-}\"," >> terraform/main.tfvars.json
+          echo "  \"azure_openai_api_key\": \"${AZURE_OPENAI_API_KEY:-}\"," >> terraform/main.tfvars.json
+          echo "  \"anthropic_api_key\": \"${ANTHROPIC_API_KEY:-}\"," >> terraform/main.tfvars.json
+          echo "  \"vnc_password\": \"${VNC_PASSWORD:-magentic123!}\"," >> terraform/main.tfvars.json
+          echo "  \"enable_vnc_browser\": ${ENABLE_VNC_BROWSER:-true}," >> terraform/main.tfvars.json
+          echo "  \"container_cpu\": ${CONTAINER_CPU_CORES:-1.0}," >> terraform/main.tfvars.json
+          echo "  \"container_memory\": ${CONTAINER_MEMORY_GB:-2.0}," >> terraform/main.tfvars.json
+          echo "  \"vnc_container_cpu\": ${VNC_CONTAINER_CPU_CORES:-0.5}," >> terraform/main.tfvars.json
+          echo "  \"vnc_container_memory\": ${VNC_CONTAINER_MEMORY_GB:-1.0}," >> terraform/main.tfvars.json
+          echo "  \"resourceToken\": \"${RESOURCE_TOKEN}\"," >> terraform/main.tfvars.json
+          echo "  \"principalId\": \"${AZURE_PRINCIPAL_ID:-}\"" >> terraform/main.tfvars.json
+          echo "}" >> terraform/main.tfvars.json
+          echo "✅ Generated main.tfvars.json for azd"
         fi
     windows:
       shell: pwsh
