@@ -1,0 +1,36 @@
+# Azure AI Foundry Configuration Template for Magentic-UI
+# This file uses placeholder values that should be replaced with actual Azure details
+# DO NOT commit this file with real values - use config.yaml for actual configuration
+
+######################################
+# Azure AI Foundry model configuration #
+######################################
+model_config: &client
+  provider: AzureOpenAIChatCompletionClient
+  config:
+    model: AZURE_OPENAI_MODEL_PLACEHOLDER
+    azure_endpoint: "AZURE_OPENAI_ENDPOINT_PLACEHOLDER"
+    azure_deployment: "AZURE_OPENAI_DEPLOYMENT_PLACEHOLDER"
+    api_version: "2024-10-21"
+    model_info:
+      vision: true
+      function_calling: true
+      json_output: true
+      family: "openai"
+      structured_output: true
+    azure_ad_token_provider:
+      provider: autogen_ext.auth.azure.AzureTokenProvider
+      config:
+        provider_kind: DefaultAzureCredential
+        scopes:
+          - https://cognitiveservices.azure.com/.default
+  max_retries: 10
+
+##########################
+# Clients for each agent #
+##########################
+orchestrator_client: *client
+coder_client: *client
+web_surfer_client: *client
+file_surfer_client: *client
+action_guard_client: *client

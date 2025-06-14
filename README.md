@@ -32,13 +32,35 @@ magentic ui --port 8081
 If your port is 8081, you can then access Magentic-UI at <http://localhost:8081>.
 
 
-To use Azure models or Ollama please install with the optional dependencies:
+To use Azure models, Azure AI Foundry, or Ollama please install with the optional dependencies:
 ```bash
-# for Azure
+# for Azure OpenAI / Azure AI Foundry
 pip install magentic-ui[azure] 
 # for Ollama
 pip install magentic-ui[ollama]
 ```
+
+### 🚀 Azure AI Foundry Setup
+
+For enterprise deployments with Azure AI Foundry:
+
+```bash
+# 1. Install with Azure support
+pip install magentic-ui[azure]
+
+# 2. Configure Azure authentication
+az login
+
+# 3. Set up environment variables (see .env.example)
+export AZURE_OPENAI_ENDPOINT="https://your-resource.cognitiveservices.azure.com/"
+export AZURE_OPENAI_DEPLOYMENT="your-deployment-name"
+export AZURE_OPENAI_MODEL="gpt-4o"
+
+# 4. Start with Azure AI Foundry configuration
+./start-azure.sh
+```
+
+📖 **Detailed Setup Guide**: See [AZURE_AI_FOUNDRY_SETUP.md](AZURE_AI_FOUNDRY_SETUP.md) for complete configuration instructions.
 
 For further details on installation please read the   <a href="#installation">🛠️ Installation</a> section. For common installation issues and their solutions, please refer to the [troubleshooting document](TROUBLESHOOTING.md).
 
