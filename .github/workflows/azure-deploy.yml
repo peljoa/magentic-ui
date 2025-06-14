@@ -53,17 +53,12 @@ jobs:
 
     - name: Initialize azd environment
       run: |
-        echo "Initializing azd environment..."
+        echo "Setting up azd environment..."
         
-        # Initialize azd project if not already initialized
-        if [ ! -f ".azure/config.json" ]; then
-          azd init --template . --force
-        fi
+        # Create or select the environment
+        azd env new "${{ env.AZURE_ENV_NAME }}" || azd env select "${{ env.AZURE_ENV_NAME }}"
         
-        # Set the environment name
-        azd env new "${{ env.AZURE_ENV_NAME }}" --force || azd env select "${{ env.AZURE_ENV_NAME }}"
-        
-        echo "azd environment initialized successfully"
+        echo "azd environment ready: ${{ env.AZURE_ENV_NAME }}"
 
     - name: Log in with Azure (Federated Credentials)
       if: ${{ env.AZURE_CLIENT_ID != '' }}
