@@ -7,6 +7,7 @@ _Automate your web tasks while you stay in control_
 [![image](https://img.shields.io/pypi/v/magentic_ui.svg)](https://pypi.python.org/pypi/magentic_ui)
 [![image](https://img.shields.io/pypi/l/magentic_ui.svg)](https://pypi.python.org/pypi/magentic_ui)
 ![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
+[![Deploy Magentic-UI to Azure](https://github.com/pelagiaas/magentic-ui/actions/workflows/azure-deploy.yml/badge.svg?branch=main)](https://github.com/pelagiaas/magentic-ui/actions/workflows/azure-deploy.yml)
 
 </div>
 
