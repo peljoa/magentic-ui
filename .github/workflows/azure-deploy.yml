@@ -123,6 +123,11 @@ jobs:
         AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
         AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'westeurope' }}
         AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
+        # Set ARM environment variables for Terraform authentication
+        ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
     - name: Deploy Application
       run: |

@@ -21,6 +21,9 @@ provider "azurerm" {
       recover_soft_deleted_key_vaults = true
     }
   }
+  
+  # Authentication will be handled by environment variables:
+  # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID
 }
 
 # Get current client configuration
