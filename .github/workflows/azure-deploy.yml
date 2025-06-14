@@ -60,25 +60,13 @@ jobs:
         
         echo "azd environment ready: ${{ env.AZURE_ENV_NAME }}"
 
-    - name: Log in with Azure (Federated Credentials)
-      if: ${{ env.AZURE_CLIENT_ID != '' }}
-      run: |
-        echo "Attempting federated credential login..."
-        azd auth login \
-          --client-id "${{ env.AZURE_CLIENT_ID }}" \
-          --federated-credential-provider "github" \
-          --tenant-id "${{ env.AZURE_TENANT_ID }}"
-        echo "Azure login successful"
-      shell: bash
-
     - name: Log in with Azure (Client Credentials)
-      if: ${{ env.AZURE_CLIENT_ID == '' }}
       run: |
         echo "Attempting client credentials login..."
         azd auth login \
-          --client-id "${{ secrets.AZURE_CLIENT_ID }}" \
+          --client-id "${{ vars.AZURE_CLIENT_ID }}" \
           --client-secret "${{ secrets.AZURE_CLIENT_SECRET }}" \
-          --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
+          --tenant-id "${{ vars.AZURE_TENANT_ID }}"
         echo "Azure login successful"
       shell: bash
 
