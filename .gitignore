@@ -212,3 +212,7 @@ venv.bak/
 **/memory_bank/
 **/pagelogs/
 config.yaml
+
+# GitHub secrets configuration (contains sensitive data)
+.github-secrets-config.json
+.github-secrets.env
