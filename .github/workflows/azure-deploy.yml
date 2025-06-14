@@ -30,11 +30,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Azure CLI
-      uses: azure/CLI@v1
-      with:
-        azcliversion: 2.53.0
-
     - name: Install Azure Developer CLI
       run: |
         # Install azd using the official installation script with retry logic
@@ -49,8 +44,26 @@ jobs:
           fi
         done
         
+        # Add azd to PATH for this session
+        echo "$HOME/.azd/bin" >> $GITHUB_PATH
+        export PATH="$HOME/.azd/bin:$PATH"
+        
         # Verify installation
         azd version
+
+    - name: Initialize azd environment
+      run: |
+        echo "Initializing azd environment..."
+        
+        # Initialize azd project if not already initialized
+        if [ ! -f ".azure/config.json" ]; then
+          azd init --template . --force
+        fi
+        
+        # Set the environment name
+        azd env new "${{ env.AZURE_ENV_NAME }}" --force || azd env select "${{ env.AZURE_ENV_NAME }}"
+        
+        echo "azd environment initialized successfully"
 
     - name: Log in with Azure (Federated Credentials)
       if: ${{ env.AZURE_CLIENT_ID != '' }}
@@ -76,6 +89,8 @@ jobs:
 
     - name: Set environment variables
       run: |
+        echo "Setting azd environment variables..."
+        
         # Set environment variables for the deployment
         azd env set OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}"
         azd env set AZURE_OPENAI_ENDPOINT "${{ secrets.AZURE_OPENAI_ENDPOINT }}"
@@ -89,6 +104,21 @@ jobs:
         azd env set CONTAINER_MEMORY_GB "${{ vars.CONTAINER_MEMORY_GB || '2.0' }}"
         azd env set VNC_CONTAINER_CPU_CORES "${{ vars.VNC_CONTAINER_CPU_CORES || '0.5' }}"
         azd env set VNC_CONTAINER_MEMORY_GB "${{ vars.VNC_CONTAINER_MEMORY_GB || '1.0' }}"
+        
+        # Set Terraform variables for azd integration
+        azd env set TF_VAR_environment "dev"
+        azd env set TF_VAR_environmentName "${{ env.AZURE_ENV_NAME }}"
+        azd env set TF_VAR_location "${{ vars.AZURE_LOCATION || 'westeurope' }}"
+        azd env set TF_VAR_openai_api_key "${{ secrets.OPENAI_API_KEY }}"
+        azd env set TF_VAR_azure_openai_endpoint "${{ secrets.AZURE_OPENAI_ENDPOINT }}"
+        azd env set TF_VAR_azure_openai_api_key "${{ secrets.AZURE_OPENAI_API_KEY }}"
+        azd env set TF_VAR_anthropic_api_key "${{ secrets.ANTHROPIC_API_KEY }}"
+        azd env set TF_VAR_vnc_password "${{ secrets.VNC_PASSWORD }}"
+        azd env set TF_VAR_enable_vnc_browser "${{ vars.ENABLE_VNC_BROWSER || 'true' }}"
+        azd env set TF_VAR_container_cpu "${{ vars.CONTAINER_CPU_CORES || '1.0' }}"
+        azd env set TF_VAR_container_memory "${{ vars.CONTAINER_MEMORY_GB || '2.0' }}"
+        
+        echo "Environment variables set successfully"
       shell: bash
 
     - name: Provision Infrastructure
