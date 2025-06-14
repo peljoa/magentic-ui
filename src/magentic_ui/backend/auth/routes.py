@@ -57,7 +57,7 @@ async def login(
             key="session_id",
             value=session_id,
             max_age=600,
-            secure=True if request.url.scheme == "https" else False,
+            secure=True,
             httponly=True,
             samesite="lax",
         )
@@ -136,9 +136,9 @@ async def auth_callback(
             key="access_token",
             value=jwt_token.access_token,
             max_age=jwt_token.expires_in,
-            secure=True if request.url.scheme == "https" else False,
+            secure=True,
             httponly=True,
-            samesite="lax",
+            samesite="strict",
         )
 
         if jwt_token.refresh_token:
@@ -146,9 +146,9 @@ async def auth_callback(
                 key="refresh_token",
                 value=jwt_token.refresh_token,
                 max_age=7 * 24 * 3600,  # 7 days
-                secure=True if request.url.scheme == "https" else False,
+                secure=True,
                 httponly=True,
-                samesite="lax",
+                samesite="strict",
             )
 
         logger.info(f"User {user.email} authenticated successfully")
@@ -183,7 +183,7 @@ async def refresh_token(request: Request, _: Any = Depends(auth_rate_limit)):
             key="access_token",
             value=new_token.access_token,
             max_age=new_token.expires_in,
-            secure=True if request.url.scheme == "https" else False,
+            secure=True,
             httponly=True,
             samesite="lax",
         )
@@ -193,7 +193,7 @@ async def refresh_token(request: Request, _: Any = Depends(auth_rate_limit)):
                 key="refresh_token",
                 value=new_token.refresh_token,
                 max_age=7 * 24 * 3600,  # 7 days
-                secure=True if request.url.scheme == "https" else False,
+                secure=True,
                 httponly=True,
                 samesite="lax",
             )
@@ -290,4 +290,4 @@ async def auth_health():
         }
     except Exception as e:
         logger.error(f"Authentication health check failed: {str(e)}")
-        return {"status": "unhealthy", "service": "authentication", "error": str(e)}
+        return {"status": "unhealthy", "service": "authentication", "error": "An internal error occurred."}
