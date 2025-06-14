@@ -28,22 +28,39 @@ hooks:
         # Generate terraform.tfvars from template
         echo "📝 Generating Terraform variables..."
         if [ -f "terraform/terraform.tfvars.tmpl" ]; then
-          # Simple template substitution for key variables
-          sed "s/{{ .Env.AZURE_ENV_NAME }}/$AZURE_ENV_NAME/g; \
-               s/{{ .Env.AZURE_LOCATION }}/$AZURE_LOCATION/g; \
-               s/{{ .Env.OPENAI_API_KEY }}/$OPENAI_API_KEY/g; \
-               s/{{ .Env.AZURE_OPENAI_ENDPOINT }}/${AZURE_OPENAI_ENDPOINT:-}/g; \
-               s/{{ .Env.AZURE_OPENAI_API_KEY }}/${AZURE_OPENAI_API_KEY:-}/g; \
-               s/{{ .Env.ANTHROPIC_API_KEY }}/${ANTHROPIC_API_KEY:-}/g; \
-               s/{{ .Env.VNC_PASSWORD }}/${VNC_PASSWORD:-magentic123!}/g; \
-               s/{{ .Env.ENABLE_VNC_BROWSER }}/${ENABLE_VNC_BROWSER:-true}/g; \
-               s/{{ .Env.CONTAINER_CPU_CORES }}/${CONTAINER_CPU_CORES:-1.0}/g; \
-               s/{{ .Env.CONTAINER_MEMORY_GB }}/${CONTAINER_MEMORY_GB:-2.0}/g; \
-               s/{{ .Env.VNC_CONTAINER_CPU_CORES }}/${VNC_CONTAINER_CPU_CORES:-0.5}/g; \
-               s/{{ .Env.VNC_CONTAINER_MEMORY_GB }}/${VNC_CONTAINER_MEMORY_GB:-1.0}/g; \
-               s/{{ .Env.AZURE_RESOURCE_TOKEN }}/${AZURE_RESOURCE_TOKEN:-$(openssl rand -hex 3)}/g; \
-               s/{{ .Env.AZURE_PRINCIPAL_ID }}/${AZURE_PRINCIPAL_ID:-}/g" \
-               terraform/terraform.tfvars.tmpl > terraform/terraform.tfvars
+          # Copy template and perform safe substitutions
+          cp terraform/terraform.tfvars.tmpl terraform/terraform.tfvars
+          
+          # Escape special characters in environment variables for sed
+          escape_for_sed() {
+            printf '%s\n' "$1" | sed 's/[[\.*^$()+?{|]/\\&/g'
+          }
+          
+          # Generate resource token if not provided
+          RESOURCE_TOKEN="${AZURE_RESOURCE_TOKEN:-$(openssl rand -hex 3)}"
+          
+          # Use | as delimiter to avoid issues with URLs and paths
+          sed -i.bak \
+            -e "s|{{ \.Env\.AZURE_ENV_NAME }}|${AZURE_ENV_NAME}|g" \
+            -e "s|{{ \.Env\.AZURE_LOCATION }}|${AZURE_LOCATION}|g" \
+            -e "s|{{ \.Env\.OPENAI_API_KEY }}|$(escape_for_sed "${OPENAI_API_KEY}")|g" \
+            -e "s|{{ \.Env\.AZURE_OPENAI_ENDPOINT }}|$(escape_for_sed "${AZURE_OPENAI_ENDPOINT:-}")|g" \
+            -e "s|{{ \.Env\.AZURE_OPENAI_API_KEY }}|$(escape_for_sed "${AZURE_OPENAI_API_KEY:-}")|g" \
+            -e "s|{{ \.Env\.ANTHROPIC_API_KEY }}|$(escape_for_sed "${ANTHROPIC_API_KEY:-}")|g" \
+            -e "s|{{ \.Env\.VNC_PASSWORD }}|$(escape_for_sed "${VNC_PASSWORD:-magentic123!}")|g" \
+            -e "s|{{ \.Env\.ENABLE_VNC_BROWSER }}|${ENABLE_VNC_BROWSER:-true}|g" \
+            -e "s|{{ \.Env\.CONTAINER_CPU_CORES }}|${CONTAINER_CPU_CORES:-1.0}|g" \
+            -e "s|{{ \.Env\.CONTAINER_MEMORY_GB }}|${CONTAINER_MEMORY_GB:-2.0}|g" \
+            -e "s|{{ \.Env\.VNC_CONTAINER_CPU_CORES }}|${VNC_CONTAINER_CPU_CORES:-0.5}|g" \
+            -e "s|{{ \.Env\.VNC_CONTAINER_MEMORY_GB }}|${VNC_CONTAINER_MEMORY_GB:-1.0}|g" \
+            -e "s|{{ \.Env\.AZURE_RESOURCE_TOKEN }}|${RESOURCE_TOKEN}|g" \
+            -e "s|{{ \.Env\.AZURE_PRINCIPAL_ID }}|${AZURE_PRINCIPAL_ID:-}|g" \
+            terraform/terraform.tfvars
+          
+          # Remove backup file
+          rm -f terraform/terraform.tfvars.bak
+          
+          echo "✅ Generated terraform.tfvars with environment variables"
         fi
     windows:
       shell: pwsh
