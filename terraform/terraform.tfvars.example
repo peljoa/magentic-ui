@@ -1,0 +1,37 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and fill in your values
+
+# Required variables
+openai_api_key = "your-openai-api-key-here"
+
+# Optional: Azure OpenAI configuration (if using Azure OpenAI instead of OpenAI)
+# azure_openai_endpoint = "https://your-resource.openai.azure.com/"
+# azure_openai_api_key = "your-azure-openai-api-key"
+
+# Optional: Anthropic API key
+# anthropic_api_key = "your-anthropic-api-key"
+
+# Environment settings
+environment = "dev"
+location    = "West Europe"  # Choose your preferred Azure region
+
+# Container resource settings (adjust based on needs)
+container_cpu    = 1.0   # CPU cores for main container
+container_memory = 2.0   # Memory in GB for main container
+
+vnc_container_cpu    = 0.5  # CPU cores for VNC browser container
+vnc_container_memory = 1.0  # Memory in GB for VNC browser container
+
+# VNC browser settings
+enable_vnc_browser = true
+vnc_password       = "your-secure-vnc-password"
+
+# Security settings
+allowed_ip_ranges = ["0.0.0.0/0"]  # Change this to restrict access to specific IP ranges
+
+# Additional tags
+tags = {
+  Owner       = "your-name"
+  CostCenter  = "your-cost-center"
+  Description = "Magentic-UI deployment"
+}

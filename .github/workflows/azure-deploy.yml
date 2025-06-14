@@ -1,0 +1,104 @@
+name: Deploy Magentic-UI to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install azd
+      uses: Azure/setup-azd@v1.0.0
+
+    - name: Log in with Azure (Federated Credentials)
+      if: ${{ env.AZURE_CLIENT_ID != '' }}
+      run: |
+        azd auth login \
+          --client-id "${{ env.AZURE_CLIENT_ID }}" \
+          --federated-credential-provider "github" \
+          --tenant-id "${{ env.AZURE_TENANT_ID }}"
+      shell: bash
+
+    - name: Log in with Azure (Client Credentials)
+      if: ${{ env.AZURE_CLIENT_ID == '' }}
+      run: |
+        azd auth login \
+          --client-id "${{ secrets.AZURE_CLIENT_ID }}" \
+          --client-secret "${{ secrets.AZURE_CLIENT_SECRET }}" \
+          --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
+      shell: bash
+
+    - name: Set environment variables
+      run: |
+        # Set environment variables for the deployment
+        azd env set OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}"
+        azd env set AZURE_OPENAI_ENDPOINT "${{ secrets.AZURE_OPENAI_ENDPOINT }}"
+        azd env set AZURE_OPENAI_API_KEY "${{ secrets.AZURE_OPENAI_API_KEY }}"
+        azd env set ANTHROPIC_API_KEY "${{ secrets.ANTHROPIC_API_KEY }}"
+        azd env set VNC_PASSWORD "${{ secrets.VNC_PASSWORD }}"
+        
+        # Set deployment configuration
+        azd env set ENABLE_VNC_BROWSER "${{ vars.ENABLE_VNC_BROWSER || 'true' }}"
+        azd env set CONTAINER_CPU_CORES "${{ vars.CONTAINER_CPU_CORES || '1.0' }}"
+        azd env set CONTAINER_MEMORY_GB "${{ vars.CONTAINER_MEMORY_GB || '2.0' }}"
+        azd env set VNC_CONTAINER_CPU_CORES "${{ vars.VNC_CONTAINER_CPU_CORES || '0.5' }}"
+        azd env set VNC_CONTAINER_MEMORY_GB "${{ vars.VNC_CONTAINER_MEMORY_GB || '1.0' }}"
+      shell: bash
+
+    - name: Provision Infrastructure
+      run: azd provision --no-prompt
+      env:
+        AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
+        AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'westeurope' }}
+        AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Deploy Application
+      run: azd deploy --no-prompt
+      env:
+        AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
+
+    - name: Output deployment information
+      run: |
+        echo "## 🚀 Deployment Completed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Application URLs" >> $GITHUB_STEP_SUMMARY
+        
+        WEB_URI=$(azd env get-values | grep SERVICE_WEB_URI | cut -d'=' -f2 | tr -d '"')
+        VNC_URI=$(azd env get-values | grep SERVICE_VNC_BROWSER_URI | cut -d'=' -f2 | tr -d '"')
+        
+        if [ ! -z "$WEB_URI" ]; then
+          echo "- **Magentic-UI**: [$WEB_URI]($WEB_URI)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ ! -z "$VNC_URI" ] && [ "$VNC_URI" != "null" ]; then
+          echo "- **VNC Browser**: [$VNC_URI]($VNC_URI)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Azure Resources" >> $GITHUB_STEP_SUMMARY
+        RESOURCE_GROUP=$(azd env get-values | grep AZURE_RESOURCE_GROUP | cut -d'=' -f2 | tr -d '"')
+        if [ ! -z "$RESOURCE_GROUP" ]; then
+          echo "- **Resource Group**: $RESOURCE_GROUP" >> $GITHUB_STEP_SUMMARY
+        fi

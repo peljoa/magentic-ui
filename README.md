@@ -42,11 +42,34 @@ pip install magentic-ui[ollama]
 
 For further details on installation please read the   <a href="#installation">🛠️ Installation</a> section. For common installation issues and their solutions, please refer to the [troubleshooting document](TROUBLESHOOTING.md).
 
+## ☁️ Deploy to Azure
+
+Want to run Magentic-UI in the cloud? We provide easy deployment to Azure using the Azure Developer CLI (azd):
+
+```bash
+# Copy environment configuration
+cp .env.example .env
+# Edit .env with your API keys
+
+# Deploy to Azure (one command!)
+./azd-deploy.sh deploy
+```
+
+This creates a cost-effective Azure deployment with:
+- **Azure Container Instances** (reliable, cost-effective hosting)
+- **Secure secrets management** with Azure Key Vault  
+- **Persistent storage** with Azure Files
+- **Built-in monitoring** with Application Insights
+- **Infrastructure as Code** with Terraform
+- **Estimated cost: ~$43-75/month**
+
+📋 **[See full Azure deployment guide →](AZD_README.md)**
 
 ## Quick Navigation:
 <p align="center">
   <a href="#how-it-works">🟪 How it Works</a> &nbsp;|&nbsp;
   <a href="#installation">🛠️ Installation</a> &nbsp;|&nbsp;
+  <a href="#azure-deployment">☁️ Azure Deployment</a> &nbsp;|&nbsp;
   <a href="#troubleshooting">⚠️ Troubleshooting</a> &nbsp;|&nbsp; 
   <a href="#contributing">🤝 Contributing</a> &nbsp;|&nbsp;
   <a href="#license">📄 License</a>

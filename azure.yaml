@@ -1,0 +1,82 @@
+name: magentic-ui
+metadata:
+  template: magentic-ui-terraform@0.0.1-beta
+infra:
+  provider: terraform
+  path: ./terraform
+services:
+  web:
+    project: .
+    language: py
+    host: containerapp
+  vnc-browser:
+    project: .
+    language: py
+    host: containerapp
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: |
+        echo "🔧 Preparing Terraform configuration..."
+        # Ensure required environment variables are set
+        if [ -z "$OPENAI_API_KEY" ]; then
+          echo "❌ OPENAI_API_KEY is required. Please set it in .env file."
+          exit 1
+        fi
+        
+        # Generate terraform.tfvars from template
+        echo "📝 Generating Terraform variables..."
+        if [ -f "terraform/terraform.tfvars.tmpl" ]; then
+          # Simple template substitution for key variables
+          sed "s/{{ .Env.AZURE_ENV_NAME }}/$AZURE_ENV_NAME/g; \
+               s/{{ .Env.AZURE_LOCATION }}/$AZURE_LOCATION/g; \
+               s/{{ .Env.OPENAI_API_KEY }}/$OPENAI_API_KEY/g; \
+               s/{{ .Env.AZURE_OPENAI_ENDPOINT }}/${AZURE_OPENAI_ENDPOINT:-}/g; \
+               s/{{ .Env.AZURE_OPENAI_API_KEY }}/${AZURE_OPENAI_API_KEY:-}/g; \
+               s/{{ .Env.ANTHROPIC_API_KEY }}/${ANTHROPIC_API_KEY:-}/g; \
+               s/{{ .Env.VNC_PASSWORD }}/${VNC_PASSWORD:-magentic123!}/g; \
+               s/{{ .Env.ENABLE_VNC_BROWSER }}/${ENABLE_VNC_BROWSER:-true}/g; \
+               s/{{ .Env.CONTAINER_CPU_CORES }}/${CONTAINER_CPU_CORES:-1.0}/g; \
+               s/{{ .Env.CONTAINER_MEMORY_GB }}/${CONTAINER_MEMORY_GB:-2.0}/g; \
+               s/{{ .Env.VNC_CONTAINER_CPU_CORES }}/${VNC_CONTAINER_CPU_CORES:-0.5}/g; \
+               s/{{ .Env.VNC_CONTAINER_MEMORY_GB }}/${VNC_CONTAINER_MEMORY_GB:-1.0}/g; \
+               s/{{ .Env.AZURE_RESOURCE_TOKEN }}/${AZURE_RESOURCE_TOKEN:-$(openssl rand -hex 3)}/g; \
+               s/{{ .Env.AZURE_PRINCIPAL_ID }}/${AZURE_PRINCIPAL_ID:-}/g" \
+               terraform/terraform.tfvars.tmpl > terraform/terraform.tfvars
+        fi
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host "🔧 Preparing Terraform configuration..." -ForegroundColor Blue
+        if (-not $env:OPENAI_API_KEY) {
+          Write-Host "❌ OPENAI_API_KEY is required. Please set it in .env file." -ForegroundColor Red
+          exit 1
+        }
+        
+        # Generate terraform.tfvars from template (Windows version)
+        if (Test-Path "terraform/terraform.tfvars.tmpl") {
+          Write-Host "📝 Generating Terraform variables..." -ForegroundColor Yellow
+          $content = Get-Content "terraform/terraform.tfvars.tmpl" -Raw
+          $content = $content -replace '{{ .Env.AZURE_ENV_NAME }}', $env:AZURE_ENV_NAME
+          $content = $content -replace '{{ .Env.AZURE_LOCATION }}', $env:AZURE_LOCATION
+          $content = $content -replace '{{ .Env.OPENAI_API_KEY }}', $env:OPENAI_API_KEY
+          $content | Out-File "terraform/terraform.tfvars" -Encoding UTF8
+        }
+  postprovision:
+    posix:
+      shell: sh
+      run: |
+        echo "🚀 Post-provision setup..."
+        echo "✅ Magentic-UI infrastructure is ready!"
+        echo "📋 Next steps:"
+        echo "   1. Run 'azd deploy' to deploy the application"
+        echo "   2. Access your application at the provided URL"
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host "🚀 Post-provision setup..." -ForegroundColor Blue
+        Write-Host "✅ Magentic-UI infrastructure is ready!" -ForegroundColor Green
+        Write-Host "📋 Next steps:" -ForegroundColor Yellow
+        Write-Host "   1. Run 'azd deploy' to deploy the application" -ForegroundColor White
+        Write-Host "   2. Access your application at the provided URL" -ForegroundColor White
