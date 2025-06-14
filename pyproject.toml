@@ -39,6 +39,14 @@ dependencies = [
     "pyyaml",
     "html2text",
     "psutil",
+    # Authentication and security dependencies
+    "msal",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "python-multipart",
+    "cryptography",
+    "slowapi",
+    "redis",
 ]
 
 [project.optional-dependencies]

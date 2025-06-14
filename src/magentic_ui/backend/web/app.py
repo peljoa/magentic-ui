@@ -23,6 +23,7 @@ from .routes import (
     validation,
     ws,
 )
+from ..auth.routes import router as auth_router
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -84,12 +85,7 @@ app = FastAPI(lifespan=lifespan, debug=True)
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:8001",
-        "http://localhost:8081",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -152,6 +148,14 @@ api.include_router(
     settingsroute.router,
     prefix="/settings",
     tags=["settings"],
+    responses={404: {"description": "Not found"}},
+)
+
+# Include authentication router
+api.include_router(
+    auth_router,
+    prefix="/auth",
+    tags=["authentication"],
     responses={404: {"description": "Not found"}},
 )
 

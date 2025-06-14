@@ -1,5 +1,5 @@
 # api/routes/sessions.py
-from typing import Dict
+from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
