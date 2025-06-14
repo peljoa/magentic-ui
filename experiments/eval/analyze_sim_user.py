@@ -132,7 +132,7 @@ async def process_csv(csv_path: str, output_path: str) -> None:
                 df.at[index, "llm_execution_count"] = 0
                 df.at[index, "llm_plan_count"] = 0
 
-            answer = str(row.get("answer", "")).strip().lower()
+            # answer = str(row.get("answer", "")).strip().lower()
             # if answer == "unable to determine":
             #    df.at[index, "llm_execution_count"] = max(1, df.at[index, "llm_execution_count"])
 

@@ -1,8 +1,9 @@
 # Fix for ChromaDB sqlite3 version compatibility
 import sys
+
 try:
-    __import__('pysqlite3')
-    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+    __import__("pysqlite3")
+    sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 except ImportError:
     # pysqlite3-binary not installed, continue with built-in sqlite3
     pass

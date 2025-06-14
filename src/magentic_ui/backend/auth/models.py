@@ -25,7 +25,7 @@ class User(BaseModel):
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
     avatar_url: Optional[str] = None
-    
+
     # Azure AD specific fields
     azure_object_id: Optional[str] = None
     tenant_id: Optional[str] = None
