@@ -1,10 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from fastapi.responses import RedirectResponse
-from loguru import logger
 import secrets
 from typing import Any
 
-from .msal_service import msal_service
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from loguru import logger
+
+from .dependencies import (
+    auth_rate_limit,
+    get_current_active_user,
+    get_current_user,
+    require_admin,
+    standard_rate_limit,
+)
 from .models import (
     LoginRequest,
     LoginResponse,
@@ -12,13 +19,6 @@ from .models import (
     User,
     UserCreate,
     UserUpdate,
-)
-from .dependencies import (
-    get_current_user,
-    get_current_active_user,
-    require_admin,
-    auth_rate_limit,
-    standard_rate_limit,
 )
 
 router = APIRouter()
