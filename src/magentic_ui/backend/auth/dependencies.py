@@ -1,26 +1,13 @@
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List
+from typing import Any, List, Optional
+
+from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-try:
-    from .msal_service import msal_service
-except ImportError:
-    msal_service = None
-
-try:
-    from .models import User, UserRole, TokenData
-except ImportError:
-    User = None
-    UserRole = None
-    TokenData = None
-
-try:
-    from ..web.config import settings
-except ImportError:
-    settings = None
-
+from ..web.config import settings
+from .models import User, UserRole
+from .msal_service import msal_service
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -40,7 +27,19 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if not msal_service:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Authentication service not configured",
+        )
+
     token_data = msal_service.verify_token(credentials.credentials)
+
+    if not token_data.email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: missing email",
+        )
 
     # In production, you'd fetch the user from database
     # For now, we'll create a user object from token data
@@ -88,11 +87,14 @@ async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> Optional[User]:
     """Get current user if authenticated, otherwise return None"""
-    if not credentials:
+    if not credentials or not msal_service:
         return None
 
     try:
         token_data = msal_service.verify_token(credentials.credentials)
+        if not token_data.email:
+            return None
+
         return User(
             email=token_data.email,
             name=token_data.email.split("@")[0],
@@ -107,11 +109,11 @@ async def get_optional_user(
 def get_user_id(request: Request) -> str:
     """Extract user ID from request for rate limiting and logging"""
     auth_header = request.headers.get("authorization")
-    if auth_header and auth_header.startswith("Bearer "):
+    if auth_header and auth_header.startswith("Bearer ") and msal_service:
         try:
             token = auth_header.split(" ")[1]
             token_data = msal_service.verify_token(token)
-            return token_data.user_id or token_data.email
+            return token_data.user_id or token_data.email or "unknown"
         except Exception:
             pass
 
@@ -123,7 +125,7 @@ class SecurityHeaders:
     """Security headers middleware"""
 
     @staticmethod
-    def add_security_headers(response, request: Request):
+    def add_security_headers(response: Response, request: Request) -> Response:
         """Add security headers to response"""
         # HSTS (HTTP Strict Transport Security)
         if settings.HTTPS_ONLY:
@@ -153,20 +155,21 @@ class SecurityHeaders:
         return response
 
 
-def rate_limit_key_func(request: Request):
+def rate_limit_key_func(request: Request) -> str:
     """Custom rate limit key function that considers user"""
     user_id = get_user_id(request)
     return f"{user_id}:{request.url.path}"
 
 
 # Rate limiting decorators
-def standard_rate_limit(request: Request):
+def standard_rate_limit() -> Any:
     """Standard rate limit: 100 requests per minute"""
     return limiter.limit(
-        f"{settings.RATE_LIMIT_REQUESTS}/{settings.RATE_LIMIT_WINDOW}second"
-    )(request)
+        f"{settings.RATE_LIMIT_REQUESTS}/{settings.RATE_LIMIT_WINDOW}second",
+        key_func=rate_limit_key_func
+    )
 
 
-def auth_rate_limit(request: Request):
+def auth_rate_limit() -> Any:
     """Authentication rate limit: 10 requests per minute"""
-    return limiter.limit("10/1minute")(request)
+    return limiter.limit("10/1minute", key_func=rate_limit_key_func)

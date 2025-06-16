@@ -1,5 +1,5 @@
 import secrets
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -20,6 +20,7 @@ from .models import (
     UserCreate,
     UserUpdate,
 )
+from .msal_service import msal_service
 
 router = APIRouter()
 
@@ -27,10 +28,16 @@ router = APIRouter()
 @router.post("/login", response_model=LoginResponse)
 async def login(
     request: Request,
-    login_request: LoginRequest = None,
+    login_request: Optional[LoginRequest] = None,
     _: Any = Depends(auth_rate_limit),
 ):
     """Initiate MSAL authentication flow"""
+    if not msal_service:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Azure AD authentication is not configured",
+        )
+
     try:
         # Generate state for CSRF protection
         state = secrets.token_urlsafe(32)
@@ -76,13 +83,18 @@ async def login(
 @router.get("/callback")
 async def auth_callback(
     request: Request,
-    code: str = None,
-    state: str = None,
-    error: str = None,
-    error_description: str = None,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    error_description: Optional[str] = None,
     _: Any = Depends(auth_rate_limit),
 ):
     """Handle MSAL authentication callback"""
+    if not msal_service:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Azure AD authentication is not configured",
+        )
 
     # Check for authentication errors
     if error:
@@ -167,6 +179,12 @@ async def auth_callback(
 @router.post("/refresh", response_model=Token)
 async def refresh_token(request: Request, _: Any = Depends(auth_rate_limit)):
     """Refresh access token using refresh token"""
+    if not msal_service:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Azure AD authentication is not configured",
+        )
+
     refresh_token = request.cookies.get("refresh_token")
 
     if not refresh_token:
@@ -255,11 +273,12 @@ async def update_current_user(
 @router.get("/users", response_model=list[User])
 async def list_users(
     admin_user: User = Depends(require_admin), _: Any = Depends(standard_rate_limit)
-):
+) -> list[User]:
     """List all users (admin only)"""
     # In production, you'd fetch users from database
     # For now, return empty list
-    return []
+    users: list[User] = []
+    return users
 
 
 @router.post("/users", response_model=User)
@@ -280,6 +299,14 @@ async def create_user(
 async def auth_health():
     """Authentication service health check"""
     try:
+        if not msal_service:
+            return {
+                "status": "healthy",
+                "service": "authentication",
+                "msal_configured": False,
+                "message": "Azure AD authentication is not configured",
+            }
+
         # Test MSAL service
         test_url, _ = msal_service.get_auth_url("test-state")
 
@@ -290,4 +317,8 @@ async def auth_health():
         }
     except Exception as e:
         logger.error(f"Authentication health check failed: {str(e)}")
-        return {"status": "unhealthy", "service": "authentication", "error": "An internal error occurred."}
+        return {
+            "status": "unhealthy",
+            "service": "authentication",
+            "error": "An internal error occurred.",
+        }

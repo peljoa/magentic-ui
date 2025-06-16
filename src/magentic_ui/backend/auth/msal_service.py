@@ -1,6 +1,6 @@
 import json
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import msal
@@ -31,7 +31,7 @@ class MSALService:
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}. Using in-memory storage.")
             self.redis_client = None
-            self._memory_store = {}
+            self._memory_store: Dict[str, Any] = {}
 
         # Only create MSAL app instance if Azure credentials are configured
         self.app = None
@@ -44,19 +44,23 @@ class MSALService:
                 )
                 logger.info("MSAL authentication service initialized successfully")
             except Exception as e:
-                logger.warning(f"Failed to initialize MSAL service: {e}. Azure AD authentication will be disabled.")
+                logger.warning(
+                    f"Failed to initialize MSAL service: {e}. Azure AD authentication will be disabled."
+                )
                 self.app = None
         else:
-            logger.info("Azure AD credentials not configured. MSAL authentication service disabled.")
+            logger.info(
+                "Azure AD credentials not configured. MSAL authentication service disabled."
+            )
 
     def get_auth_url(self, state: Optional[str] = None) -> tuple[str, str]:
         """Generate Azure AD authentication URL"""
         if not self.app:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Azure AD authentication is not configured"
+                detail="Azure AD authentication is not configured",
             )
-            
+
         if not state:
             state = secrets.token_urlsafe(32)
 
@@ -71,9 +75,9 @@ class MSALService:
         if not self.app:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Azure AD authentication is not configured"
+                detail="Azure AD authentication is not configured",
             )
-            
+
         try:
             result = self.app.acquire_token_by_authorization_code(
                 code=code, scopes=self.scopes, redirect_uri=self.redirect_uri
@@ -118,7 +122,7 @@ class MSALService:
             name=name,
             azure_object_id=object_id,
             tenant_id=tenant_id,
-            last_login=datetime.utcnow(),
+            last_login=datetime.now(timezone.utc),
         )
 
     def create_jwt_token(self, user: User) -> Token:
@@ -130,8 +134,8 @@ class MSALService:
             "user_id": user.email,  # Use email as user_id for backward compatibility
             "name": user.name,
             "roles": [role.value for role in user.roles],
-            "exp": datetime.utcnow() + access_token_expires,
-            "iat": datetime.utcnow(),
+            "exp": datetime.now(timezone.utc) + access_token_expires,
+            "iat": datetime.now(timezone.utc),
             "type": "access",
         }
 
@@ -143,8 +147,8 @@ class MSALService:
         refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         refresh_token_data = {
             "sub": user.email,
-            "exp": datetime.utcnow() + refresh_token_expires,
-            "iat": datetime.utcnow(),
+            "exp": datetime.now(timezone.utc) + refresh_token_expires,
+            "iat": datetime.now(timezone.utc),
             "type": "refresh",
         }
 
@@ -165,9 +169,9 @@ class MSALService:
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
 
-            email: str = payload.get("sub")
-            user_id: str = payload.get("user_id")
-            roles: list = payload.get("roles", [])
+            email: Optional[str] = payload.get("sub")
+            user_id: Optional[str] = payload.get("user_id")
+            roles: list[str] = payload.get("roles", [])
             token_type: str = payload.get("type", "access")
 
             if email is None or token_type != "access":
@@ -194,7 +198,7 @@ class MSALService:
                 refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
 
-            email: str = payload.get("sub")
+            email: Optional[str] = payload.get("sub")
             token_type: str = payload.get("type", "access")
 
             if email is None or token_type != "refresh":
@@ -229,7 +233,8 @@ class MSALService:
             else:
                 self._memory_store[f"session:{session_id}"] = {
                     "data": data,
-                    "expires": datetime.utcnow() + timedelta(seconds=expire_seconds),
+                    "expires": datetime.now(timezone.utc)
+                    + timedelta(seconds=expire_seconds),
                 }
         except Exception as e:
             logger.error(f"Failed to store session data: {str(e)}")
@@ -242,7 +247,9 @@ class MSALService:
                 return json.loads(data) if data else None
             else:
                 session_data = self._memory_store.get(f"session:{session_id}")
-                if session_data and session_data["expires"] > datetime.utcnow():
+                if session_data and session_data["expires"] > datetime.now(
+                    timezone.utc
+                ):
                     return session_data["data"]
                 elif session_data:
                     # Expired session
@@ -268,5 +275,7 @@ try:
     msal_service = MSALService()
     logger.info("MSAL authentication service initialized successfully")
 except Exception as e:
-    logger.warning(f"Failed to initialize MSAL service: {e}. Azure AD authentication will be disabled.")
+    logger.warning(
+        f"Failed to initialize MSAL service: {e}. Azure AD authentication will be disabled."
+    )
     msal_service = None
